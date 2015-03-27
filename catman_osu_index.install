@@ -1,0 +1,42 @@
+<?php
+
+/**
+ * Implements hook_install().
+ */
+function catman_osu_index_install(){
+  // Remind user to set validation settings.
+  $settings_url = url('admin/commerce/config/payment-methods/manage/commerce_payment_catman_osu_index/edit/3', array('absolute' => TRUE));
+  drupal_set_message(t('Thank you for installing Catman OSU index, kindly set the index code settings by visiting <a href="@settings">index code settings</a>.', array('@settings' => $settings_url)), 'status', FALSE);
+}
+
+function catman_osu_index_uninstall(){
+  variable_del('catman_osu_index_title');
+  variable_del('catman_osu_indexcode_title');
+}
+
+
+/**
+ * Implements hook_schema().
+ */
+function catman_osu_index_schema() {
+  $schema = array();
+  $schema['catman_osu_index'] = array(
+    'description' => 'The base table for index codes.',
+    'fields' => array(
+      'order_id' => array(
+        'description' => 'The order id.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'index_code' => array(
+        'description' => 'The index code.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+    ),
+    'primary key' => array('order_id', 'index_code')
+  );
+  return $schema;
+}

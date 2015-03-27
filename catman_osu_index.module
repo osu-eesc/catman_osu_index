@@ -1,0 +1,271 @@
+<?php
+
+/**
+ * @file
+ * Provides an payment method for Drupal Commerce.
+ */
+
+
+/**
+ * Implements hook_menu().
+ */
+function catman_osu_index_menu() {
+  $items = array();
+
+  // Add a menu item for capturing authorizations.
+  $items['admin/commerce/orders/%commerce_order/payment/%commerce_payment_transaction/index-validate'] = array(
+    'title' => 'Validate',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('catman_osu_index_validate_form', 3, 5),
+    'access callback' => 'catman_osu_index_validate_access',
+    'access arguments' => array(3, 5),
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'context' => MENU_CONTEXT_INLINE,
+    'weight' => 2,
+  );
+
+  $items['admin/commerce/config/catman-osu-index'] = array(
+    'title' => 'OSU index code settings',
+    'description' => 'Override the title of the OSU index code method',
+    'access arguments' => array('configure store'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('catman_osu_index_admin_config'),
+  );
+
+  return $items;
+}
+
+ /**
+ * Form builder; The settings form for commerce purchase order.
+ *
+ * @ingroup forms
+ * @see system_settings_form()
+*/
+
+function catman_osu_index_admin_config() {
+  $form['catman_osu_index_title'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Payment method title'),
+    '#default_value' => variable_get('catman_osu_index_title', 'OSU index code'),
+    '#description' => t('Override the default title.'),
+  );
+  $form['catman_osu_index_code_title'] = array(
+    '#type' => 'textfield',
+    '#title' => t('OSU index code title'),
+    '#default_value' => variable_get('catman_osu_index_code_title', 'OSU index code'),
+    '#description' => t('Override the default title of the OSU index code field.'),
+  );
+  return system_settings_form($form);
+}
+
+/**
+ * User access callback for OSU Index code number validation
+ */
+function catman_osu_index_validate_access($order, $transaction) {
+  if ($transaction->payment_method == 'catman_osu_index' && $transaction->status == COMMERCE_PAYMENT_STATUS_PENDING) {
+    // Allow access if the user can update payments on this order.
+    return commerce_payment_transaction_access('update', $transaction);
+  }
+  // Return FALSE if the transaction isn't with a OSU Index code
+  else {
+    return FALSE;
+  }
+}
+
+/**
+ * Validate a payment transaction paid with a OSU Index code
+ */
+function catman_osu_index_validate_form($form, &$form_state, $order, $transaction) {
+  $form_state['order'] = $order;
+  $form_state['transaction'] = $transaction;
+
+  // Load and store the payment method instance for this transaction.
+  $payment_method = commerce_payment_method_instance_load($transaction->instance_id);
+  $form_state['payment_method'] = $payment_method;
+
+  $form['information'] = array(
+    '#markup' => t('Validating the transaction means that the OSU index code was verified. This will mark the transaction as successful').'<br />'
+  );
+
+  $form['actions'] = array('#type' => 'actions');
+
+  $form['actions']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Validate')
+  );
+
+  // Cancel link in case they'd like to validate another time.
+  $form['actions']['cancel'] = array(
+    '#markup' => l(t('Cancel'), 'admin/commerce/orders/' . $order->order_id . '/payment', array('absolute' => TRUE)),
+  );
+
+
+  return $form;
+}
+
+function catman_osu_index_validate_form_submit($form, &$form_state) {
+  $transaction = $form_state['transaction'];
+  $order = $form_state['order'];
+  $transaction->status = COMMERCE_PAYMENT_STATUS_SUCCESS;
+  commerce_payment_transaction_save($transaction);
+  $form_state['redirect'] = 'admin/commerce/orders/'.$order->order_id.'/payment';
+}
+
+/**
+ * Implements hook_commerce_payment_method_info().
+ */
+function catman_osu_index_commerce_payment_method_info() {
+  $payment_methods = array();
+
+  $payment_methods['catman_osu_index'] = array(
+    'title' => t('OSU Index code'),
+    'description' => t('Grant customers permission to pay by OSU Index code.'),
+    'active' => TRUE,
+  );
+
+  return $payment_methods;
+}
+
+/**
+ * Payment method callback: settings form.
+ */
+function catman_osu_index_settings_form($settings = NULL) {
+  $form = array();
+  $form['catman_osu_index_length'] = array(
+    '#type' => 'textfield',
+    '#title' => t('OSU Index code length'),
+    '#size' => 4,
+    '#description' => t('The required length of the OSU Index code, set to 0 for no length requirement.'),
+    '#default_value' => isset($settings['catman_osu_index_length']) ? $settings['catman_osu_index_length'] : 6,
+    '#required' => TRUE,
+  );
+  $form['catman_osu_index_instructions'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Instructions'),
+    '#description' => t('The instructions the customer sees when checking out.'),
+    '#default_value' => isset($settings['catman_osu_index_instructions']) ? $settings['catman_osu_index_instructions'] : '',
+  );
+  return $form;
+}
+
+/**
+ * Payment method callback: submit form.
+ */
+function catman_osu_index_submit_form($payment_method, $pane_values, $checkout_pane, $order) {
+  $form = array();
+  $settings = $payment_method['settings'];
+
+  // Merge in values from the order.
+  if (!empty($order->data['catman_osu_index'])) {
+    $pane_values += $order->data['catman_osu_index'];
+  }
+
+  // Merge in default values.
+  $pane_values += array(
+    'index_code' => '',
+  );
+
+  $form['index_code'] = array(
+    '#type' => 'textfield',
+    '#title' => t('OSU Index code'),
+    '#description' => isset($settings['catman_osu_index_instructions']) ? $settings['catman_osu_index_instructions'] : '',
+    '#default_value' => $pane_values['index_code'],
+    '#required' => TRUE,
+  );
+
+  return $form;
+}
+
+/**
+ * Payment method callback: submit form validation.
+ */
+function catman_osu_index_submit_form_validate($payment_method, $pane_form, $pane_values, $order, $form_parents = array()) {
+
+  // If user did not set default value, set it to 0.
+  $index_length = (empty($payment_method['settings'])) ? 0 : $payment_method['settings']['catman_osu_index_length'];
+
+  // Automatically return true if $index_length is set to 0.
+  if ($index_length == 0) {
+    return TRUE;
+  }
+
+  // Throw an error if a long enough number was not provided.
+  if (strlen($pane_values['index_code']) < $index_length) {
+    form_set_error(implode('][', array_merge($form_parents, array('name'))), t("You must enter a OSU Index code  $index_length characters long."));
+    // Even though the form error is enough to stop the submission of the form,
+    // it's not enough to stop it from a Commerce standpoint because of the
+    // combined validation / submission going on per-pane in the checkout form.
+    return FALSE;
+  }
+}
+
+/**
+ * Payment method callback: submit form submission.
+ */
+function catman_osu_index_submit_form_submit($payment_method, $pane_form, $pane_values, $order, $charge) {
+  $order->data['catman_osu_index'] = $pane_values;
+
+  catman_osu_index_transaction($payment_method, $order, $charge, $pane_values['index_code']);
+}
+
+/**
+ * Creates a OSU index code payment transaction for the specified charge amount.
+ *
+ * @param $payment_method
+ *   The payment method instance object used to charge this payment.
+ * @param $order
+ *   The order object the payment applies to.
+ * @param $charge
+ *   An array indicating the amount and currency code to charge.
+ * @param $name
+ *   The name entered on the submission form.
+ */
+function catman_osu_index_transaction($payment_method, $order, $charge, $index_code) {
+  $transaction = commerce_payment_transaction_new('catman_osu_index', $order->order_id);
+  $transaction->instance_id = $payment_method['instance_id'];
+  $transaction->amount = $charge['amount'];
+  $transaction->currency_code = $charge['currency_code'];
+  // Set to pending: the administrator will need to set it manually to success when the PO number was verified.
+  $transaction->status = COMMERCE_PAYMENT_STATUS_PENDING;
+  $transaction->message = 'Paid with OSU index: @index_code';
+  $transaction->message_variables = array('@index_code' => $index_code);
+
+  commerce_payment_transaction_save($transaction);
+
+  // Insert index code in DB
+  $order_id = $order->order_id;
+  db_insert('catman_osu_index')
+    ->fields(array(
+      'order_id' => $order_id,
+      'index_code' => $index_code
+    ))
+    ->execute();
+}
+
+
+/**
+ * Implements hook_views_api().
+ */
+function catman_osu_index_views_api() {
+  return array(
+    'api' => 3,
+    'path' => drupal_get_path('module', 'catman_osu_index') . '/includes/views',
+  );
+}
+
+/**
+ * Returns a index code from an order id
+ */
+function catman_osu_index_number_from_order_id($order_id) {
+  $result = db_select('catman_osu_index', 'c')
+    ->fields('c')
+    ->condition('order_id', $order_id, '=')
+    ->execute()
+    ->fetchAssoc();
+  if ($result) {
+    return $result['index_code'];
+  }
+  else {
+    return '';
+  }
+}

@@ -1,0 +1,11 @@
+name = Catman OSU Index
+description = Allows OSU Affiliates to pay by OSU index code. Cloned from the commerce_purchase_order module.
+package = Catman
+dependencies[] = commerce
+dependencies[] = commerce_payment
+core = 7.x
+version = "7.x-1.0"
+
+; Base module files
+files[] = catman_osu_index.module
+files[] = includes/views/catman_osu_index_handler_field_osu_index.inc
