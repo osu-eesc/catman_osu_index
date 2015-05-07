@@ -25,8 +25,8 @@ function catman_osu_index_menu() {
   );
 
   $items['admin/commerce/config/catman-osu-index'] = array(
-    'title' => 'OSU index code settings',
-    'description' => 'Override the title of the OSU index code method',
+    'title' => 'OSU Index number settings',
+    'description' => 'Override the title of the OSU index number method',
     'access arguments' => array('configure store'),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('catman_osu_index_admin_config'),
@@ -46,34 +46,34 @@ function catman_osu_index_admin_config() {
   $form['catman_osu_index_title'] = array(
     '#type' => 'textfield',
     '#title' => t('Payment method title'),
-    '#default_value' => variable_get('catman_osu_index_title', 'OSU index code'),
+    '#default_value' => variable_get('catman_osu_index_title', 'OSU index number'),
     '#description' => t('Override the default title.'),
   );
   $form['catman_osu_index_code_title'] = array(
     '#type' => 'textfield',
-    '#title' => t('OSU index code title'),
-    '#default_value' => variable_get('catman_osu_index_code_title', 'OSU index code'),
-    '#description' => t('Override the default title of the OSU index code field.'),
+    '#title' => t('OSU Index number title'),
+    '#default_value' => variable_get('catman_osu_index_code_title', 'OSU index number'),
+    '#description' => t('Override the default title of the OSU index number field.'),
   );
   return system_settings_form($form);
 }
 
 /**
- * User access callback for OSU Index code number validation
+ * User access callback for OSU Index number number validation
  */
 function catman_osu_index_validate_access($order, $transaction) {
   if ($transaction->payment_method == 'catman_osu_index' && $transaction->status == COMMERCE_PAYMENT_STATUS_PENDING) {
     // Allow access if the user can update payments on this order.
     return commerce_payment_transaction_access('update', $transaction);
   }
-  // Return FALSE if the transaction isn't with a OSU Index code
+  // Return FALSE if the transaction isn't with a OSU Index number
   else {
     return FALSE;
   }
 }
 
 /**
- * Validate a payment transaction paid with a OSU Index code
+ * Validate a payment transaction paid with a OSU Index number
  */
 function catman_osu_index_validate_form($form, &$form_state, $order, $transaction) {
   $form_state['order'] = $order;
@@ -84,7 +84,7 @@ function catman_osu_index_validate_form($form, &$form_state, $order, $transactio
   $form_state['payment_method'] = $payment_method;
 
   $form['information'] = array(
-    '#markup' => t('Validating the transaction means that the OSU index code was verified. This will mark the transaction as successful').'<br />'
+    '#markup' => t('Validating the transaction means that the OSU Index number was verified. This will mark the transaction as successful').'<br />'
   );
 
   $form['actions'] = array('#type' => 'actions');
@@ -118,8 +118,8 @@ function catman_osu_index_commerce_payment_method_info() {
   $payment_methods = array();
 
   $payment_methods['catman_osu_index'] = array(
-    'title' => t('OSU Index code'),
-    'description' => t('Grant customers permission to pay by OSU Index code.'),
+    'title' => t('OSU Index number'),
+    'description' => t('Grant customers permission to pay by OSU Index number.'),
     'active' => TRUE,
   );
 
@@ -133,9 +133,9 @@ function catman_osu_index_settings_form($settings = NULL) {
   $form = array();
   $form['catman_osu_index_length'] = array(
     '#type' => 'textfield',
-    '#title' => t('OSU Index code length'),
+    '#title' => t('OSU Index number length'),
     '#size' => 4,
-    '#description' => t('The required length of the OSU Index code, set to 0 for no length requirement.'),
+    '#description' => t('The required length of the OSU Index number, set to 0 for no length requirement.'),
     '#default_value' => isset($settings['catman_osu_index_length']) ? $settings['catman_osu_index_length'] : 6,
     '#required' => TRUE,
   );
@@ -167,7 +167,7 @@ function catman_osu_index_submit_form($payment_method, $pane_values, $checkout_p
 
   $form['index_code'] = array(
     '#type' => 'textfield',
-    '#title' => t('OSU Index code'),
+    '#title' => t('OSU Index number'),
     '#description' => isset($settings['catman_osu_index_instructions']) ? $settings['catman_osu_index_instructions'] : '',
     '#default_value' => $pane_values['index_code'],
     '#required' => TRUE,
@@ -191,7 +191,7 @@ function catman_osu_index_submit_form_validate($payment_method, $pane_form, $pan
 
   // Throw an error if a long enough number was not provided.
   if (strlen($pane_values['index_code']) < $index_length) {
-    form_set_error(implode('][', array_merge($form_parents, array('name'))), t("You must enter a OSU Index code  $index_length characters long."));
+    form_set_error(implode('][', array_merge($form_parents, array('name'))), t("You must enter a OSU Index number  $index_length characters long."));
     // Even though the form error is enough to stop the submission of the form,
     // it's not enough to stop it from a Commerce standpoint because of the
     // combined validation / submission going on per-pane in the checkout form.
@@ -209,7 +209,7 @@ function catman_osu_index_submit_form_submit($payment_method, $pane_form, $pane_
 }
 
 /**
- * Creates a OSU index code payment transaction for the specified charge amount.
+ * Creates a OSU Index number payment transaction for the specified charge amount.
  *
  * @param $payment_method
  *   The payment method instance object used to charge this payment.
@@ -232,7 +232,7 @@ function catman_osu_index_transaction($payment_method, $order, $charge, $index_c
 
   commerce_payment_transaction_save($transaction);
 
-  // Insert index code in DB
+  // Insert Index number in DB
   $order_id = $order->order_id;
   db_insert('catman_osu_index')
     ->fields(array(
@@ -254,7 +254,7 @@ function catman_osu_index_views_api() {
 }
 
 /**
- * Returns a index code from an order id
+ * Returns a Index number from an order id
  */
 function catman_osu_index_number_from_order_id($order_id) {
   $result = db_select('catman_osu_index', 'c')
